@@ -2,64 +2,53 @@
 pipeline {
     agent any
 
-    environment {
-        APP_NAME = 'demo-devops'
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                echo 'Etape 1 : Recuperation du code source'
+                // Recuperer le code source depuis Git
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Python Version') {
             steps {
-                echo 'Etape 2 : Construction du projet'
-                sh 'echo "Build de ${APP_NAME} en cours..."'
-                sh 'mkdir -p build'
-                sh 'echo "Application construite" > build/result.txt'
+                // Verifier la version de Python
+                sh 'python3 --version'
             }
         }
 
-        stage('Test') {
+        stage('Syntax Check') {
             steps {
-                echo 'Etape 3 : Execution des tests'
-                sh 'test -f build/result.txt'
-                sh 'grep -q "Application construite" build/result.txt'
-                echo 'Tests reussis !'
+                // Verifier la syntaxe des fichiers Python
+                sh 'python3 -m py_compile calculator.py test_calculator.py'
             }
         }
 
-        stage('Package') {
+        stage('Unit Tests') {
             steps {
-                echo 'Etape 4 : Preparation de l artefact'
-                sh 'tar -czf demo-artifact.tar.gz build/'
+                // Executer les tests unitaires
+                sh 'python3 -m unittest -v test_calculator.py'
             }
         }
 
-        stage('Deploy') {
+        stage('Success') {
             steps {
-                echo 'Etape 5 : Deploiement simule'
-                sh 'echo "Deploiement de ${APP_NAME} termine !"'
+                echo 'Build et tests termines avec succes !'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline termine avec succes.'
-            archiveArtifacts artifacts: 'demo-artifact.tar.gz',
-                             fingerprint: true
+            echo 'Pipeline execute avec succes.'
         }
 
         failure {
-            echo 'Echec du pipeline. Consulte les logs.'
+            echo 'Echec du pipeline. Verifier les logs.'
         }
 
         always {
-            echo 'Fin du pipeline.'
+            echo 'Execution du pipeline terminee.'
         }
     }
 }
