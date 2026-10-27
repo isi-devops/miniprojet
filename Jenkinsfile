@@ -1,54 +1,33 @@
-
 pipeline {
-    agent any
+  agent any
+  options { skipDefaultCheckout(false) }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                // Recuperer le code source depuis Git
-                checkout scm
-            }
-        }
-
-        stage('Python Version') {
-            steps {
-                // Verifier la version de Python
-                sh 'python3 --version'
-            }
-        }
-
-        stage('Syntax Check') {
-            steps {
-                // Verifier la syntaxe des fichiers Python
-                sh 'python3 -m py_compile calculator.py test_calculator.py'
-            }
-        }
-
-        stage('Unit Tests') {
-            steps {
-                // Executer les tests unitaires
-                sh 'python3 -m unittest -v test_calculator.py'
-            }
-        }
-
-        stage('Success') {
-            steps {
-                echo 'Build et tests termines avec succes !'
-            }
-        }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
     }
 
-    post {
-        success {
-            echo 'Pipeline execute avec succes.'
+    stage('Sonar Analysis') {
+      steps {
+        script { scannerHome = tool 'SonarScanner' }
+        withSonarQubeEnv('sonarqube') {
+          sh """
+            ${scannerHome}/bin/sonar-scanner \
+              -Dsonar.projectKey=calculator \
+              -Dsonar.projectName=calculator \
+              -Dsonar.sources=. \
+              -Dsonar.branch.name=${env.BRANCH_NAME}
+          """
         }
-
-        failure {
-            echo 'Echec du pipeline. Verifier les logs.'
-        }
-
-        always {
-            echo 'Execution du pipeline terminee.'
-        }
+      }
     }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+  }
 }
