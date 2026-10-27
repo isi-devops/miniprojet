@@ -8,19 +8,21 @@ pipeline {
     }
 
     stage('Sonar Analysis') {
-      steps {
-        script { scannerHome = tool 'SonarScanner' }
-        withSonarQubeEnv('sonarqube') {
-          sh """
-            ${scannerHome}/bin/sonar-scanner \
-              -Dsonar.projectKey=calculator \
-              -Dsonar.projectName=calculator \
-              -Dsonar.sources=. \
-              -Dsonar.branch.name=${env.BRANCH_NAME}
-          """
-        }
+  steps {
+    script {
+      def scannerHome = tool 'SonarScanner'
+      def safeBranch = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9_.:-]', '_')
+      withSonarQubeEnv('sonarqube') {
+        sh """
+          ${scannerHome}/bin/sonar-scanner \
+            -Dsonar.projectKey=calculator-${safeBranch} \
+            -Dsonar.projectName='calculator (${env.BRANCH_NAME})' \
+            -Dsonar.sources=.
+        """
       }
     }
+  }
+}
 
     stage('Quality Gate') {
       steps {
