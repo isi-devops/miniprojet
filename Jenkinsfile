@@ -184,9 +184,7 @@ pipeline {
   }
 
   post {
-    always {
-      // Nettoyage de l'image locale pour ne pas saturer le disque
-    }
+   
     failure { echo 'Pipeline en échec : consultez les rapports archivés (hadolint, trivy).' }
     success { echo "Image ${env.FULL_IMAGE} construite et scannée avec succès." }
   }
