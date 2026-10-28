@@ -1,0 +1,8 @@
+FROM jenkins/jenkins:lts-jdk21
+
+USER root
+# Client Docker (binaire statique) copié depuis l'image officielle docker:cli
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
+
+# Pour garder l'utilisateur jenkins (plus propre que root), voir group_add dans docker-compose.yml
+USER jenkins
