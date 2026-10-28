@@ -188,7 +188,7 @@ pipeline {
   post {
     always {
       // Nettoyage de l'image locale pour ne pas saturer le disque
-      sh 'docker rmi ${FULL_IMAGE} || true'
+      //sh 'docker rmi ${FULL_IMAGE} || true'
     }
     failure { echo 'Pipeline en échec : consultez les rapports archivés (hadolint, trivy).' }
     success { echo "Image ${env.FULL_IMAGE} construite et scannée avec succès." }
