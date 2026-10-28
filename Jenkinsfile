@@ -8,8 +8,6 @@ pipeline {
 
   environment {
     IMAGE_NAME  = 'calculator'
-    // Le tag est calculé dans le stage "Prepare"
-    IMAGE_TAG   = ''
     // Gravités qui font échouer le pipeline
     TRIVY_SEVERITY = 'HIGH,CRITICAL'
     // Cache Trivy partagé entre les builds (volume Docker nommé)
@@ -27,8 +25,9 @@ pipeline {
         script {
           def safeBranch = env.BRANCH_NAME.toLowerCase().replaceAll('[^a-z0-9_.-]', '-')
           def shortSha   = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-          env.IMAGE_TAG  = "${safeBranch}-${env.BUILD_NUMBER}-${shortSha}"
-          env.FULL_IMAGE = "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+          def tag        = "${safeBranch}-${env.BUILD_NUMBER}-${shortSha}"
+          env.IMAGE_TAG  = tag
+          env.FULL_IMAGE = "${env.IMAGE_NAME}:${tag}"
           echo "Image cible : ${env.FULL_IMAGE}"
         }
       }
@@ -127,10 +126,13 @@ pipeline {
         stage('Dockle - bonnes pratiques image') {
           steps {
             sh '''
+              # DKL-DI-0005 ignoré : faux positif sur les images Debian récentes
+              # (apt-get dist-clean nettoie bien le cache mais Dockle ne le reconnaît pas)
               docker run --rm \
                 -v /var/run/docker.sock:/var/run/docker.sock \
                 goodwithtech/dockle:latest \
                   --exit-code 1 --exit-level fatal \
+                  -i DKL-DI-0005 \
                   ${FULL_IMAGE}
             '''
           }
@@ -184,7 +186,10 @@ pipeline {
   }
 
   post {
-   
+    always {
+      // Nettoyage de l'image locale pour ne pas saturer le disque
+      sh 'docker rmi ${FULL_IMAGE} || true'
+    }
     failure { echo 'Pipeline en échec : consultez les rapports archivés (hadolint, trivy).' }
     success { echo "Image ${env.FULL_IMAGE} construite et scannée avec succès." }
   }
